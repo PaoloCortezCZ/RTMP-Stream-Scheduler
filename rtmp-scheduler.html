@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RTMP Stream Scheduler - Win3.11 Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
+    <style>
+        /* Windows 3.11 Style */
+        body {
+            font-family: 'Arial', 'Helvetica', sans-serif; /* Fallback for MS Sans Serif */
+            background-color: #008080; /* Classic Teal background */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
+            image-rendering: pixelated; /* Attempt for sharper edges */
+        }
+
+        .win31-window {
+            background-color: #C0C0C0; /* Standard gray */
+            border-top: 2px solid #FFFFFF;
+            border-left: 2px solid #FFFFFF;
+            border-right: 2px solid #000000;
+            border-bottom: 2px solid #000000;
+            box-shadow: 3px 3px 0px #808080; /* Simple offset shadow */
+            width: 100%;
+            max-width: 760px; /* Increased width significantly */
+            padding: 3px; /* Inner padding before content */
+        }
+
+        .win31-title-bar {
+            background-color: #000080; /* Dark Blue */
+            color: #FFFFFF;
+            padding: 3px 5px;
+            margin-bottom: 8px; /* Space between title bar and content */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 0.875rem;
+        }
+        .win31-title-bar-text {
+            /* Title text is already white and bold from parent */
+        }
+        .win31-title-bar-controls span {
+            background-color: #C0C0C0;
+            border-top: 1px solid #FFFFFF;
+            border-left: 1px solid #FFFFFF;
+            border-right: 1px solid #000000;
+            border-bottom: 1px solid #000000;
+            padding: 0px 3px;
+            margin-left: 2px;
+            font-size: 0.75rem;
+            min-width: 18px;
+            text-align: center;
+            display: inline-block;
+            line-height: 14px; /* Adjust for vertical centering of symbols */
+        }
+
+
+        .win31-content {
+            padding: 8px;
+        }
+
+        .win31-input {
+            @apply w-full px-2 py-1 mt-1 text-black bg-white border-gray-500 focus:outline-none;
+            border-top: 1px solid #000000;
+            border-left: 1px solid #000000;
+            border-right: 1px solid #FFFFFF;
+            border-bottom: 1px solid #FFFFFF;
+            font-size: 0.875rem;
+            box-shadow: inset 1px 1px 0px #808080;
+            text-align: center; /* Centered text in input */
+        }
+        .win31-input::placeholder {
+            color: #A0A0A0;
+            text-align: center;
+        }
+
+        .win31-label {
+            @apply block text-xs font-normal text-black mb-0.5;
+            font-size: 0.8rem;
+            text-align: center; /* Centered labels */
+        }
+
+        .error-message {
+            @apply text-red-700 text-xs mt-0.5 bg-yellow-200 px-1 text-center; /* Centered error message */
+        }
+
+        .calculated-field {
+            background-color: #E0E0E0;
+            color: #505050;
+            border-top: 1px solid #808080;
+            border-left: 1px solid #808080;
+            border-right: 1px solid #C0C0C0;
+            border-bottom: 1px solid #C0C0C0;
+            text-align: center; /* Centered text */
+        }
+
+        .group-box {
+            border: 1px solid #808080;
+            border-top-color: #FFFFFF;
+            border-left-color: #FFFFFF;
+            padding: 10px;
+            padding-top: 15px;
+            margin-top: 10px;
+            position: relative;
+        }
+        .group-box-title {
+            position: absolute;
+            top: -0.7em;
+            left: 50%; /* Center the title */
+            transform: translateX(-50%); /* Adjust for its own width */
+            background: #C0C0C0;
+            padding: 0 0.5em; /* Increased padding for better look when centered */
+            font-size: 0.8rem;
+            font-weight: normal;
+            color: black;
+            white-space: nowrap; /* Prevent wrapping if title is long */
+        }
+
+
+        .win31-button-container {
+            @apply mt-6 flex justify-center;
+        }
+
+        .win31-button {
+            @apply text-black font-normal py-1.5 px-6 transition-all duration-100 ease-in-out text-sm;
+            background-color: #C0C0C0;
+            border-top: 2px solid #FFFFFF;
+            border-left: 2px solid #FFFFFF;
+            border-right: 2px solid #000000;
+            border-bottom: 2px solid #000000;
+            min-width: 100px;
+        }
+        .win31-button:hover {
+            /* No distinct hover for Win3.11 */
+        }
+        .win31-button:active {
+            border-top: 2px solid #000000;
+            border-left: 2px solid #000000;
+            border-right: 2px solid #FFFFFF;
+            border-bottom: 2px solid #FFFFFF;
+            padding-top: calc(0.375rem + 2px);
+            padding-bottom: calc(0.375rem - 2px);
+        }
+        .win31-button:disabled {
+            color: #808080;
+            border-top: 2px solid #A0A0A0;
+            border-left: 2px solid #A0A0A0;
+        }
+        .win31-button.default {
+            padding: calc(0.375rem - 1px) calc(1.5rem - 1px);
+            border: 3px solid #C0C0C0;
+            outline: 1px solid black;
+            outline-offset: -4px;
+        }
+         .win31-button.default:active {
+            outline-offset: -2px;
+            border-top: 3px solid #000000;
+            border-left: 3px solid #000000;
+            border-right: 3px solid #FFFFFF;
+            border-bottom: 3px solid #FFFFFF;
+         }
+
+
+        .win31-output-container {
+            @apply mt-4 p-2;
+            border-top: 1px solid #808080;
+            border-left: 1px solid #808080;
+            border-right: 1px solid #FFFFFF;
+            border-bottom: 1px solid #FFFFFF;
+        }
+        .win31-output-textarea {
+            @apply w-full p-1 border-0 bg-white text-xs font-mono focus:outline-none text-center; /* Centered text */
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .copy-feedback {
+             @apply text-green-700 text-xs mt-1 font-bold text-center; /* Centered */
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="win31-window">
+        <div class="win31-title-bar">
+            <span class="win31-title-bar-text">RTMP Stream Scheduler</span>
+            <div class="win31-title-bar-controls">
+                <span>▼</span> <span>▲</span> </div>
+        </div>
+
+        <div class="win31-content">
+            <form id="schedulerForm">
+
+                <div class="group-box">
+                    <span class="group-box-title">Camera Setup</span>
+                    <div class="mb-3">
+                        <label for="ipAddress" class="win31-label">Camera Source (IP/URL):</label>
+                        <input type="text" id="ipAddress" name="ipAddress" class="win31-input" value="https://b8a44f140b8d.us1.device-connect.net/" required>
+                        <div id="ipAddressError" class="error-message"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="port" class="win31-label">Port:</label>
+                        <input type="number" id="port" name="port" class="win31-input" value="80" required>
+                        <div id="portError" class="error-message"></div>
+                    </div>
+                </div>
+
+                <div class="group-box">
+                    <span class="group-box-title">Scheduling Details</span>
+                    <div class="mb-3">
+                        <label for="streamId" class="win31-label">Stream ID:</label>
+                        <input type="text" id="streamId" name="streamId" class="win31-input" required>
+                        <div id="streamIdError" class="error-message"></div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-3 mb-3">
+                        <div>
+                            <label for="startDateTime" class="win31-label">Start Date & Time:</label>
+                            <input type="datetime-local" id="startDateTime" name="startDateTime" class="win31-input" required>
+                            <div id="startDateTimeError" class="error-message"></div>
+                        </div>
+                        <div>
+                            <label for="durationMinutes" class="win31-label">Duration (minutes):</label>
+                            <input type="number" id="durationMinutes" name="durationMinutes" class="win31-input" value="180" min="1" required>
+                            <div id="durationMinutesError" class="error-message"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="endDateTime" class="win31-label">Calculated End Date & Time:</label>
+                        <input type="datetime-local" id="endDateTime" name="endDateTime" class="win31-input calculated-field" readonly>
+                        <div id="endDateTimeError" class="error-message"></div>
+                    </div>
+                </div>
+
+                <div class="group-box">
+                     <span class="group-box-title">RTMP Output</span>
+                    <div class="mb-3">
+                        <label for="rtmpServerBase" class="win31-label">RTMP Server Base:</label>
+                        <input type="text" id="rtmpServerBase" name="rtmpServerBase" class="win31-input" value="rtmp://a.rtmp.youtube.com/live2/">
+                        <div id="rtmpServerBaseError" class="error-message"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="streamKey" class="win31-label">Stream Key:</label>
+                        <input type="text" id="streamKey" name="streamKey" class="win31-input" placeholder="Your RTMP Stream Key" required>
+                        <div id="streamKeyError" class="error-message"></div>
+                    </div>
+                </div>
+
+                <div class="group-box">
+                    <span class="group-box-title">Advanced (Optional)</span>
+                    <div class="mb-3">
+                        <label for="deviceAccessToken" class="win31-label">Device Access Token:</label>
+                        <input type="text" id="deviceAccessToken" name="deviceAccessToken" class="win31-input" value="5MkVo5plwUrDx6QTCEPg1f3P_us1">
+                        <div id="deviceAccessTokenError" class="error-message"></div>
+                    </div>
+                </div>
+
+                <div class="win31-button-container">
+                    <button type="button" id="generateButton" onclick="generateUrl()" class="win31-button default">
+                        Generate URL
+                    </button>
+                </div>
+            </form>
+
+            <div id="generatedUrlContainer" class="win31-output-container mt-4" style="display:none;">
+                <label class="win31-label mb-1">Generated URL:</label>
+                <textarea id="generatedUrl" rows="3" class="win31-output-textarea" readonly></textarea>
+                <div class="flex justify-end mt-2"> <button type="button" onclick="copyUrl()" class="win31-button text-xs px-4">
+                        Copy URL
+                    </button>
+                </div>
+                <div id="copyFeedback" class="copy-feedback text-right"></div>
+            </div>
+        </div> </div>
+
+<script>
+    const STREAM_ID_STORAGE_KEY = 'schedulerNextStreamId';
+    const STREAM_ID_START_VALUE = 2000;
+    const generateButton = document.getElementById('generateButton');
+
+    function validateField(id, errorId, message, isRequired = true, validationFn = null) {
+        const inputElement = document.getElementById(id);
+        const errorElement = document.getElementById(errorId);
+        errorElement.textContent = "";
+
+        let fieldValid = true;
+        if (isRequired && !inputElement.value) {
+            errorElement.textContent = message;
+            fieldValid = false;
+        }
+        if (inputElement.value && validationFn && !validationFn(inputElement.value)) {
+             errorElement.textContent = "Invalid format or value.";
+             fieldValid = false;
+        }
+        return fieldValid;
+    }
+
+    function calculateAndDisplayEndTime() {
+        const startDateTimeValue = document.getElementById("startDateTime").value;
+        const durationMinutesValue = document.getElementById("durationMinutes").value;
+        const endDateTimeInput = document.getElementById("endDateTime");
+        const endDateTimeError = document.getElementById("endDateTimeError");
+
+        endDateTimeInput.value = "";
+        endDateTimeError.textContent = "";
+
+        if (startDateTimeValue && durationMinutesValue) {
+            const durationMinutes = parseInt(durationMinutesValue);
+            if (isNaN(durationMinutes) || durationMinutes <= 0) {
+                endDateTimeError.textContent = "Duration must be a positive number.";
+                return false;
+            }
+            try {
+                const startDate = new Date(startDateTimeValue);
+                if (isNaN(startDate.getTime())) {
+                    endDateTimeError.textContent = "Invalid Start Date & Time.";
+                    return false;
+                }
+                const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+                const year = endDate.getFullYear();
+                const month = (endDate.getMonth() + 1).toString().padStart(2, '0');
+                const day = endDate.getDate().toString().padStart(2, '0');
+                const hours = endDate.getHours().toString().padStart(2, '0');
+                const minutes = endDate.getMinutes().toString().padStart(2, '0');
+                endDateTimeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+                return true;
+            } catch (e) {
+                endDateTimeError.textContent = "Error calculating end time.";
+                console.error("Error in calculateAndDisplayEndTime:", e);
+                return false;
+            }
+        } else {
+             if (!startDateTimeValue && durationMinutesValue) endDateTimeError.textContent = "Set Start Date & Time.";
+             else if (startDateTimeValue && !durationMinutesValue) endDateTimeError.textContent = "Set Duration.";
+            return false;
+        }
+    }
+
+    function validateInputs() {
+        let isValidOverall = true;
+        isValidOverall = validateField("ipAddress", "ipAddressError", "Camera Source is required.") && isValidOverall;
+        isValidOverall = validateField("port", "portError", "Port is required.", true, value => !isNaN(value) && Number(value) >= 0 && Number(value) <= 65535) && isValidOverall;
+        isValidOverall = validateField("streamId", "streamIdError", "Stream ID is required.", true, value => !isNaN(value) && Number.isInteger(Number(value))) && isValidOverall;
+        isValidOverall = validateField("startDateTime", "startDateTimeError", "Start Date & Time is required.") && isValidOverall;
+        isValidOverall = validateField("durationMinutes", "durationMinutesError", "Duration is required.", true, value => !isNaN(value) && Number(value) > 0) && isValidOverall;
+        isValidOverall = validateField("rtmpServerBase", "rtmpServerBaseError", "RTMP Server Base is required.") && isValidOverall;
+        isValidOverall = validateField("streamKey", "streamKeyError", "Stream Key is required.") && isValidOverall;
+
+        if (isValidOverall) {
+            if (!calculateAndDisplayEndTime()) {
+                isValidOverall = false;
+            } else if (!document.getElementById("endDateTime").value) {
+                document.getElementById("endDateTimeError").textContent = "End time calculation failed.";
+                isValidOverall = false;
+            }
+        }
+        generateButton.disabled = !isValidOverall;
+        return isValidOverall;
+    }
+
+    function generateUrl() {
+        document.getElementById("copyFeedback").textContent = "";
+        if (!validateInputs()) {
+            document.getElementById("generatedUrlContainer").style.display = "none";
+            return;
+        }
+
+        const ipAddress = document.getElementById("ipAddress").value;
+        const port = document.getElementById("port").value;
+        const streamIdField = document.getElementById("streamId");
+        const streamIdForUrl = streamIdField.value;
+        const startDateTimeValue = document.getElementById("startDateTime").value;
+        const endDateTimeValue = document.getElementById("endDateTime").value;
+        const rtmpServerBase = document.getElementById("rtmpServerBase").value;
+        const streamKey = document.getElementById("streamKey").value;
+        const deviceAccessToken = document.getElementById("deviceAccessToken").value;
+
+        if (!endDateTimeValue) {
+            document.getElementById("endDateTimeError").textContent = "Calculated End Time is missing.";
+            document.getElementById("generatedUrlContainer").style.display = "none";
+            return;
+        }
+
+        const startTimeUnix = Math.floor(new Date(startDateTimeValue).getTime() / 1000);
+        const stopTimeUnix = Math.floor(new Date(endDateTimeValue).getTime() / 1000);
+
+        if (isNaN(stopTimeUnix) || stopTimeUnix <= startTimeUnix) {
+            document.getElementById("endDateTimeError").textContent = "Invalid calculated End Time.";
+            document.getElementById("generatedUrlContainer").style.display = "none";
+            return;
+        }
+
+        const mediaServerUrl = rtmpServerBase + streamKey;
+        const encodedMediaServerUrl = encodeURIComponent(mediaServerUrl);
+        const enabled = "1";
+        const audioSource = "default";
+        const trigger = "time";
+
+        let finalCameraPart = ''; // Will be constructed below
+        try {
+             // Start by parsing the user input URL
+            const urlObject = new URL(ipAddress.startsWith('http') ? ipAddress : `http://${ipAddress}`);
+
+            // ** FORCE PROTOCOL TO HTTP **
+            urlObject.protocol = 'http:';
+
+            // Handle Port
+            if (port) {
+                const numericPort = Number(port);
+                // Only add port if it's not the default HTTP port 80
+                if (numericPort !== 80) {
+                    urlObject.port = port;
+                } else {
+                    urlObject.port = ''; // Ensure default port 80 is not explicitly added
+                }
+            } else {
+                 // If no port specified in the field, ensure default port 80 isn't added
+                 if (urlObject.port === '80') {
+                    urlObject.port = '';
+                 }
+            }
+
+            // Reconstruct the origin part (http://hostname:port or http://hostname)
+            finalCameraPart = urlObject.origin;
+             if (finalCameraPart.endsWith('/')) { // Remove trailing slash if URL object added one
+                finalCameraPart = finalCameraPart.slice(0, -1);
+            }
+
+        } catch (e) {
+            console.error("Invalid URL for camera source:", e);
+            document.getElementById("ipAddressError").textContent = "Invalid Camera Source URL format.";
+            document.getElementById("generatedUrlContainer").style.display = "none";
+            return;
+        }
+
+        // Construct the final URL
+        let finalUrl = `${finalCameraPart}/local/camstreamer/stream/set.cgi?stream_id=${encodeURIComponent(streamIdForUrl)}&enabled=${enabled}&audioSource=${audioSource}&trigger=${trigger}&startTime=${startTimeUnix}&stopTime=${stopTimeUnix}&mediaServerUrl=${encodedMediaServerUrl}`;
+        if (deviceAccessToken) {
+            finalUrl += `&DEVICE_ACCESS_TOKEN=${encodeURIComponent(deviceAccessToken)}`;
+        }
+
+        document.getElementById("generatedUrl").value = finalUrl;
+        document.getElementById("generatedUrlContainer").style.display = "block";
+
+        let numericStreamId = parseInt(streamIdForUrl);
+        if (isNaN(numericStreamId)) { numericStreamId = STREAM_ID_START_VALUE - 1; }
+        const nextStreamId = numericStreamId + 1;
+        streamIdField.value = nextStreamId;
+        localStorage.setItem(STREAM_ID_STORAGE_KEY, nextStreamId.toString());
+        generateButton.disabled = true;
+    }
+
+    function copyUrl() {
+        const urlTextarea = document.getElementById("generatedUrl");
+        urlTextarea.select();
+        urlTextarea.setSelectionRange(0, 99999);
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(urlTextarea.value)
+                    .then(() => { document.getElementById("copyFeedback").textContent = "URL copied!"; })
+                    .catch(err => {
+                        document.getElementById("copyFeedback").textContent = "Could not copy.";
+                        fallbackCopyTextToClipboard(urlTextarea);
+                    });
+            } else { fallbackCopyTextToClipboard(urlTextarea); }
+        } catch (err) { document.getElementById("copyFeedback").textContent = "Could not copy."; }
+    }
+
+    function fallbackCopyTextToClipboard(textAreaElement) {
+        try {
+            const successful = document.execCommand("copy");
+            document.getElementById("copyFeedback").textContent = successful ? "URL copied! (fallback)" : "Copy failed (fallback).";
+        } catch (err) { document.getElementById("copyFeedback").textContent = "Copy error (fallback)."; }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const streamIdField = document.getElementById('streamId');
+        let lastStreamId = localStorage.getItem(STREAM_ID_STORAGE_KEY);
+        let currentStreamIdToDisplay = (lastStreamId === null || isNaN(parseInt(lastStreamId)) || parseInt(lastStreamId) < STREAM_ID_START_VALUE)
+            ? STREAM_ID_START_VALUE
+            : parseInt(lastStreamId);
+        streamIdField.value = currentStreamIdToDisplay;
+
+        const now = new Date();
+        const timezoneOffsetInMs = now.getTimezoneOffset() * 60000;
+        const localISOTime = new Date(now.getTime() - timezoneOffsetInMs).toISOString().slice(0, 16);
+
+        const startDateTimeInput = document.getElementById('startDateTime');
+        startDateTimeInput.min = localISOTime;
+
+        const allInputs = document.querySelectorAll('#schedulerForm input:not([readonly])');
+        function handleInputChange() {
+            calculateAndDisplayEndTime();
+            validateInputs();
+        }
+        allInputs.forEach(input => input.addEventListener('input', handleInputChange));
+
+        calculateAndDisplayEndTime();
+        validateInputs();
+    });
+</script>
+
+</body>
+</html>
